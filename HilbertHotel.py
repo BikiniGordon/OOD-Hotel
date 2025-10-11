@@ -72,40 +72,63 @@ class HilbertHotel:
         new_rooms = []
 
         if visitor and not bus and not ship and not fleet and not group:
-
+            # new visitors in odd rooms (1,3,5,...) existing guests were moved to even rooms
             for v in range(visitor):
-                new_rooms.append(Room((2 ** v), visitor_path=(0, 0, 0, 0), visitor_number = v + 1))
+                new_rooms.append(Room(2 * v + 1, visitor_path=(0, 0, 0, 0), visitor_number=v + 1))
         
         elif bus and not ship and not fleet and not group:
-
+            p3 = 1
             for b in range(bus):
+                p2 = 1
                 for v in range(visitor):
-                    new_rooms.append(Room((2 ** v) * (3 ** b), visitor_path = (0, 0, 0, b + 1), visitor_number = v + 1))
+                    new_rooms.append(Room(p2 * p3, visitor_path = (0, 0, 0, b + 1), visitor_number = v + 1))
+                    p2 *= 2
+                p3 *= 3
 
         elif ship and not fleet and not group:
-
+            p5 = 1
             for s in range(ship):
+                p3 = 1
                 for b in range(bus):
+                    p2 = 1
                     for v in range(visitor):
-                        new_rooms.append(Room((2 ** v) * (3 ** b) * (5 ** s), visitor_path = (0, 0, s + 1, b + 1), visitor_number = v + 1))
+                        new_rooms.append(Room(p2 * p3 * p5, visitor_path = (0, 0, s + 1, b + 1), visitor_number = v + 1))
+                        p2 *= 2
+                    p3 *= 3
+                p5 *= 5
 
         elif fleet and not group:
-
+            p7 = 1
             for f in range(fleet):
+                p5 = 1
                 for s in range(ship):
+                    p3 = 1
                     for b in range(bus):
+                        p2 = 1
                         for v in range(visitor):
-                            new_rooms.append(Room((2 ** v) * (3 ** b) * (5 ** s) * (7 ** f), visitor_path = (0, f + 1, s + 1, b + 1), visitor_number = v + 1))
+                            new_rooms.append(Room(p2 * p3 * p5 * p7, visitor_path = (0, f + 1, s + 1, b + 1), visitor_number = v + 1))
+                            p2 *= 2
+                        p3 *= 3
+                    p5 *= 5
+                p7 *= 7
 
         elif group:
-            
+            p11 = 1
             for g in range(group):
+                p7 = 1
                 for f in range(fleet):
+                    p5 = 1
                     for s in range(ship):
+                        p3 = 1
                         for b in range(bus):
+                            p2 = 1
                             for v in range(visitor):
-                                new_rooms.append(Room((2 ** v) * (3 ** b) * (5 ** s) * (7 ** f) * (11 ** g), visitor_path = (g + 1, f + 1, s + 1, b + 1), visitor_number = v + 1))
-
+                                new_rooms.append(Room(p2 * p3 * p5 * p7 * p11, visitor_path = (g + 1, f + 1, s + 1, b + 1), visitor_number = v + 1))
+                                p2 *= 2
+                            p3 *= 3
+                        p5 *= 5
+                    p7 *= 7
+                p11 *= 11
         return new_rooms
 
     def _shift_existing_guests(self, n: int, method: int, silent: bool = False):
@@ -113,7 +136,7 @@ class HilbertHotel:
         self.rooms.change_room(n, method)
         self._room_cache.clear()
         end_time = time.time()
-        self._log_operation("SHIFT_GUESTS", end_time - start_time)
+        self._log_operation("SHIFT_GUESTS", end_time - start_time, "Shifted existing guests successfully")
 
     def add_batch_visitors(self, total_count: int = 0, visitors: int = 0, buses: int = 0, ships: int = 0, fleets: int = 0, groups: int = 0, infinity: bool = False) -> int:
         
@@ -141,8 +164,8 @@ class HilbertHotel:
                 n = 7
             elif buses: # bus shift prime 5
                 n = 5
-            else: # visitor shift prime 3
-                n = 3
+            else: # shift existing 2 to even
+                n = 2
 
         if self.rooms.size() > 0:
             self._shift_existing_guests(n, method, silent=True)
@@ -167,6 +190,11 @@ class HilbertHotel:
             balance_insert(sorted_rooms[mid_index + 1:])
 
         balance_insert(new_rooms)
+
+        for room in new_rooms:
+            self.rooms.insert(room)
+            if len(self._room_cache) < 100:
+                self._room_cache[room.room_number] = room
         
         self.total_guests += len(new_rooms)
         
@@ -270,7 +298,7 @@ class HilbertHotel:
         start_time = time.time()
         
         def room_generator():
-            for room in self.rooms.get_all_rooms():
+            for room in self.rooms.inorder_traversal():
                 yield room.to_dict()
         
         resource_usage = self.get_resource_usage()

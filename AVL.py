@@ -22,13 +22,6 @@ class AVLTree:
     
     def _get_height(self, node):
         return node.height
-    
-    def _get_balance(self, node):
-        if not node:
-            return -1
-        left_height = self._get_height(node.left) if node.left else 0
-        right_height = self._get_height(node.right) if node.right else 0
-        return left_height - right_height
 
     def _update_height(self, node):
         if node:
@@ -71,7 +64,6 @@ class AVLTree:
         self.root = self._insert_recursive(self.root, room)
     
     def _insert_recursive(self, node, room):
-        # Standard BST insertion
         if not node:
             self._cached_size += 1
             return AVLNode(room)
@@ -176,9 +168,6 @@ class AVLTree:
             count += 1
             current = current.right
         return count
-    
-    def get_all_rooms(self) -> List[Room]:
-        return self.inorder_traversal()
     
     def size(self) -> int:
         return self._cached_size

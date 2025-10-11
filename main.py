@@ -1,5 +1,4 @@
 from HilbertHotel import *
-from room import Room
 
 # CLI Interface
 class HilbertHotelCLI:
