@@ -12,6 +12,7 @@ class HilbertHotel:
         self.rooms = AVLTree()
         self.total_guests = 0
         self._room_cache = {}
+        self.prime_numbers = []
 
     def _log_operation(self, operation: str, duration: float, details: str = "", silent: bool = False):
         if not silent:
@@ -68,69 +69,6 @@ class HilbertHotel:
 
         return new_rooms
 
-    def _calculate_infinity(self, visitor: int = 0, bus: int = 0, ship: int = 0, fleet: int = 0, group: int = 0) -> int:
-        new_rooms = []
-
-        if visitor and not bus and not ship and not fleet and not group:
-            # new visitors in odd rooms (1,3,5,...) existing guests were moved to even rooms
-            for v in range(visitor):
-                new_rooms.append(Room(2 * v + 1, visitor_path=(0, 0, 0, 0), visitor_number=v + 1))
-        
-        elif bus and not ship and not fleet and not group:
-            p3 = 1
-            for b in range(bus):
-                p2 = 1
-                for v in range(visitor):
-                    new_rooms.append(Room(p2 * p3, visitor_path = (0, 0, 0, b + 1), visitor_number = v + 1))
-                    p2 *= 2
-                p3 *= 3
-
-        elif ship and not fleet and not group:
-            p5 = 1
-            for s in range(ship):
-                p3 = 1
-                for b in range(bus):
-                    p2 = 1
-                    for v in range(visitor):
-                        new_rooms.append(Room(p2 * p3 * p5, visitor_path = (0, 0, s + 1, b + 1), visitor_number = v + 1))
-                        p2 *= 2
-                    p3 *= 3
-                p5 *= 5
-
-        elif fleet and not group:
-            p7 = 1
-            for f in range(fleet):
-                p5 = 1
-                for s in range(ship):
-                    p3 = 1
-                    for b in range(bus):
-                        p2 = 1
-                        for v in range(visitor):
-                            new_rooms.append(Room(p2 * p3 * p5 * p7, visitor_path = (0, f + 1, s + 1, b + 1), visitor_number = v + 1))
-                            p2 *= 2
-                        p3 *= 3
-                    p5 *= 5
-                p7 *= 7
-
-        elif group:
-            p11 = 1
-            for g in range(group):
-                p7 = 1
-                for f in range(fleet):
-                    p5 = 1
-                    for s in range(ship):
-                        p3 = 1
-                        for b in range(bus):
-                            p2 = 1
-                            for v in range(visitor):
-                                new_rooms.append(Room(p2 * p3 * p5 * p7 * p11, visitor_path = (g + 1, f + 1, s + 1, b + 1), visitor_number = v + 1))
-                                p2 *= 2
-                            p3 *= 3
-                        p5 *= 5
-                    p7 *= 7
-                p11 *= 11
-        return new_rooms
-
     def _shift_existing_guests(self, n: int, method: int, silent: bool = False):
         start_time = time.time()
         self.rooms.change_room(n, method)
@@ -138,61 +76,162 @@ class HilbertHotel:
         end_time = time.time()
         self._log_operation("SHIFT_GUESTS", end_time - start_time, "Shifted existing guests successfully")
 
-    def add_batch_visitors(self, total_count: int = 0, visitors: int = 0, buses: int = 0, ships: int = 0, fleets: int = 0, groups: int = 0, infinity: bool = False) -> int:
+    def balance_insert(self, sorted_rooms):
+        if not sorted_rooms:
+            return
+        mid_index = len(sorted_rooms) // 2
+        self.rooms.insert(sorted_rooms[mid_index])
+        self.balance_insert(sorted_rooms[:mid_index])
+        self.balance_insert(sorted_rooms[mid_index + 1:])
+
+    def get_prime(self, index: int) -> int:
+        if index < 0:
+            raise ValueError("Index must be non-negative")
+        
+        if index < len(self.prime_numbers):
+            return self.prime_numbers[index]
+        
+        self._extend_primes_to_index(index)
+        return self.prime_numbers[index]
+    
+    def _is_prime(self, n: int) -> bool:
+        if n < 2:
+            return False
+        if n == 2:
+            return True
+        if n % 2 == 0:
+            return False
+        
+        sqrt_n = int(n ** 0.5) + 1
+        for prime in self.prime_numbers:
+            if prime >= sqrt_n:
+                break
+            if n % prime == 0:
+                return False
+            
+        start = self.prime_numbers[-1] + 2 if self.prime_numbers else 3
+        for i in range(start, sqrt_n, 2):
+            if n % i == 0:
+                return False
+        
+        return True
+    
+    def _extend_primes_to_index(self, target_index: int):
+        candidate = self.prime_numbers[-1] + 1 if self.prime_numbers else 2
+
+        while len(self.prime_numbers) <= target_index:
+            if self._is_prime(candidate):
+                self.prime_numbers.append(candidate)
+            candidate += 1
+        
+    def add_infinite(self, hierarchy_levels: int, amount_per_level: list):
+        start_time = time.time()
+
+        if hierarchy_levels != len(amount_per_level):
+            raise ValueError(f"Hierarchy levels ({hierarchy_levels}) must match amount list length ({len(amount_per_level)}).")
+        
+        if hierarchy_levels <= 0:
+            raise ValueError("Hierarchy levels must be positive.")
+
+        if hierarchy_levels > len(self.prime_numbers):
+            self.get_prime(hierarchy_levels - 1)
+        
+        method = 2
+        if hierarchy_levels == 1:
+            shift_prime = 2
+        else:
+            shift_prime = self.get_prime(hierarchy_levels)
+        
+        if self.rooms.size() > 0:
+            self._shift_existing_guests(shift_prime, method, silent=True)
+        
+        print(f"Adding infinite visitors with {hierarchy_levels}, with amount {amount_per_level} hierarchy levels")
+        print(f"Using primes: {self.prime_numbers[:hierarchy_levels]} for room generation and {shift_prime} for shifting")
+        
+        new_rooms = []
+        
+        if hierarchy_levels == 1: # use odd even method
+            visitors_count = amount_per_level[0]
+            for v in range(visitors_count):
+                room_number = 2 * v + 1
+                new_rooms.append(Room(room_number, visitor_path=(0, 0, 0, 0), visitor_number=v + 1))
+        else:
+            def generate_rooms_recursive(level_index, current_path, prime_powers):
+                if level_index == 0:
+                    visitors_count = amount_per_level[0]
+                    for v in range(visitors_count):
+                        room_number = 1
+                        for i, power in enumerate(prime_powers):
+                            if power > 0:
+                                room_number *= (self.prime_numbers[i] ** power)
+                        
+                        room_number *= (self.prime_numbers[0] ** (v + 1))
+                        
+                        new_rooms.append(Room(room_number, visitor_path=current_path, visitor_number=v + 1))
+                    return
+                
+                current_level_count = amount_per_level[level_index]
+                prime_index = level_index
+                
+                for unit in range(current_level_count):
+                    next_path = current_path + (unit + 1,)
+                    
+                    new_prime_powers = prime_powers.copy()
+                    new_prime_powers[prime_index] = unit + 1
+                    
+                    generate_rooms_recursive(level_index - 1, next_path, new_prime_powers)
+            
+            initial_prime_powers = [0] * hierarchy_levels
+            generate_rooms_recursive(hierarchy_levels - 1, (), initial_prime_powers)
+
+        print(f"Generated: {len(new_rooms)} rooms")
+
+        new_rooms.sort(key=lambda r: r.room_number)
+
+        self.balance_insert(new_rooms)
+
+        for room in new_rooms:
+            if len(self._room_cache) < 100:
+                self._room_cache[room.room_number] = room
+        
+        self.total_guests += len(new_rooms)
+        
+        end_time = time.time()
+        self._log_operation("ADD_INFINITE", end_time - start_time, 
+                        f"Added {len(new_rooms)} visitors")
+        
+        return len(new_rooms)
+
+    def add_batch_visitors(self, total_count: int = 0, visitors: int = 0, buses: int = 0, ships: int = 0, fleets: int = 0, groups: int = 0) -> int:
         
         start_time = time.time()
         method = 2
-        if not infinity:
-            if groups:
-                n = groups+1
-            elif fleets:
-                n = fleets+1
-            elif ships:
-                n = ships+1
-            elif buses:
-                n = buses+1
-            else:
-                n = total_count
-                method = 1
+        if groups:
+            n = groups+1
+        elif fleets:
+            n = fleets+1
+        elif ships:
+            n = ships+1
+        elif buses:
+            n = buses+1
         else:
-            method = 2
-            if groups: # group shift prime 13
-                n = 13
-            elif fleets: # fleet shift prime 11
-                n = 11
-            elif ships: # ship shift prime 7
-                n = 7
-            elif buses: # bus shift prime 5
-                n = 5
-            else: # shift existing 2 to even
-                n = 2
+            n = total_count
+            method = 1
 
         if self.rooms.size() > 0:
             self._shift_existing_guests(n, method, silent=True)
         
         print(f"Adding {total_count} visitors...")
         
-        if not infinity:
-            new_rooms = self._calculate_room_number(visitors, buses, ships, fleets, groups)
-        else:
-            new_rooms = self._calculate_infinity(visitors, buses, ships, fleets, groups)
+        new_rooms = self._calculate_room_number(visitors, buses, ships, fleets, groups)
 
         print(f"Expected: {total_count}, Generated: {len(new_rooms)}")
         
         new_rooms.sort(key=lambda r: r.room_number)
 
-        def balance_insert(sorted_rooms):
-            if not sorted_rooms:
-                return
-            mid_index = len(sorted_rooms) // 2
-            self.rooms.insert(sorted_rooms[mid_index])
-            balance_insert(sorted_rooms[:mid_index])
-            balance_insert(sorted_rooms[mid_index + 1:])
-
-        balance_insert(new_rooms)
+        self.balance_insert(new_rooms)
 
         for room in new_rooms:
-            self.rooms.insert(room)
             if len(self._room_cache) < 100:
                 self._room_cache[room.room_number] = room
         

@@ -66,60 +66,75 @@ class HilbertHotelCLI:
         print("\nAdd Batch Visitors")
         print("-" * 30)
 
-        infinity = self.get_int_input("Choose calculation method (1-2):\n1. Normal Calculation\n2. Infinity Calculation\nYour choice: ")
+        infinity_sel = self.get_int_input("Choose calculation method (1-2):\n1. Normal Calculation\n2. Infinity Calculation\nYour choice: ")
 
-        if infinity == 1:
+        if infinity_sel == 1:
             infinity = False
-        elif infinity == 2:
+        elif infinity_sel == 2:
             infinity = True
 
-        choice = self.get_int_input("\nChoose hierarchy level (1-5):\n1. Visitors only\n2. Visitors + Buses\n3. Visitors + Buses + Ships\n4. Visitors + Buses + Ships + Fleets\n5. Visitors + Buses + Ships + Fleets + Groups\nYour choice: ", 1, 5)
-
-        if choice == 1:
-            visitors = self.get_int_input("Visitors: ")
-            buses = ships = fleets = groups = 0
-
-        elif choice == 2:
-            visitors = self.get_int_input("Visitors: ")
-            buses = self.get_int_input("Buses: ")
-            ships = fleets = groups = 0
-
-        elif choice == 3:
-            visitors = self.get_int_input("Visitors: ")
-            buses = self.get_int_input("Buses: ")
-            ships = self.get_int_input("Ships: ")
-            fleets = groups = 0
-
-        elif choice == 4:
-            visitors = self.get_int_input("Visitors: ")
-            buses = self.get_int_input("Buses: ")
-            ships = self.get_int_input("Ships: ")
-            fleets = self.get_int_input("Fleets: ")
-            groups = 0
+        if infinity:
+            amount_per_level = []
+            hierarchy_amount = self.get_int_input("\nEnter the amount for each hierarchy level: ", 1)
+            for n in range(hierarchy_amount):
+                amount = self.get_int_input(f"Amount for level {n + 1}: ", 1)
+                amount_per_level.append(amount)
             
-        elif choice == 5:
-            visitors = self.get_int_input("Visitors: ")
-            buses = self.get_int_input("Buses: ")
-            ships = self.get_int_input("Ships: ")
-            fleets = self.get_int_input("Fleets: ")
-            groups = self.get_int_input("Groups: ")
+            total = 1
+            for amount in amount_per_level:
+                total *= amount
+               
+        else:
+            choice = self.get_int_input("\nChoose hierarchy level (1-5):\n1. Visitors only\n2. Visitors + Buses\n3. Visitors + Buses + Ships\n4. Visitors + Buses + Ships + Fleets\n5. Visitors + Buses + Ships + Fleets + Groups\nYour choice: ", 1, 5)
 
-        # total visitors
-        total = visitors
-        if buses > 0:
-            total *= buses
-        if ships > 0:
-            total *= ships
-        if fleets > 0:
-            total *= fleets
-        if groups > 0:
-            total *= groups
+            if choice == 1:
+                visitors = self.get_int_input("Visitors: ")
+                buses = ships = fleets = groups = 0
+
+            elif choice == 2:
+                visitors = self.get_int_input("Visitors: ")
+                buses = self.get_int_input("Buses: ")
+                ships = fleets = groups = 0
+
+            elif choice == 3:
+                visitors = self.get_int_input("Visitors: ")
+                buses = self.get_int_input("Buses: ")
+                ships = self.get_int_input("Ships: ")
+                fleets = groups = 0
+
+            elif choice == 4:
+                visitors = self.get_int_input("Visitors: ")
+                buses = self.get_int_input("Buses: ")
+                ships = self.get_int_input("Ships: ")
+                fleets = self.get_int_input("Fleets: ")
+                groups = 0
+                
+            elif choice == 5:
+                visitors = self.get_int_input("Visitors: ")
+                buses = self.get_int_input("Buses: ")
+                ships = self.get_int_input("Ships: ")
+                fleets = self.get_int_input("Fleets: ")
+                groups = self.get_int_input("Groups: ")
+
+            # total visitors
+            total = visitors
+            if buses > 0:
+                total *= buses
+            if ships > 0:
+                total *= ships
+            if fleets > 0:
+                total *= fleets
+            if groups > 0:
+                total *= groups
         
         print(f"\nThis will add {total} visitors. Continue? (y/n): ", end="")
         confirm = input().lower()
         
-        if confirm == 'y':
-            rooms = self.hotel.add_batch_visitors(total, visitors, buses, ships, fleets, groups, infinity)
+        if confirm == 'y' and not infinity:
+            rooms = self.hotel.add_batch_visitors(total, visitors, buses, ships, fleets, groups)
+            print(f"Added {rooms} visitors successfully!")
+        elif confirm == 'y' and infinity:
+            rooms = self.hotel.add_infinite(hierarchy_amount, amount_per_level)
             print(f"Added {rooms} visitors successfully!")
         else:
             print("Operation cancelled")
