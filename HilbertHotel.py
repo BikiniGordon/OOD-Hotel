@@ -133,6 +133,8 @@ class HilbertHotel:
         if hierarchy_levels <= 0:
             raise ValueError("Hierarchy levels must be positive.")
 
+        print(f"Adding infinite visitors with {hierarchy_levels}, with amount {amount_per_level} hierarchy levels")
+
         if hierarchy_levels > len(self.prime_numbers):
             self.get_prime(hierarchy_levels - 1)
         
@@ -141,12 +143,10 @@ class HilbertHotel:
             shift_prime = 2
         else:
             shift_prime = self.get_prime(hierarchy_levels)
+            print(f"Using primes: {self.prime_numbers[:hierarchy_levels]} for room generation and {shift_prime} for shifting")
         
         if self.rooms.size() > 0:
             self._shift_existing_guests(shift_prime, method, silent=True)
-        
-        print(f"Adding infinite visitors with {hierarchy_levels}, with amount {amount_per_level} hierarchy levels")
-        print(f"Using primes: {self.prime_numbers[:hierarchy_levels]} for room generation and {shift_prime} for shifting")
         
         new_rooms = []
         
