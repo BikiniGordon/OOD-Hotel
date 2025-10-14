@@ -67,7 +67,7 @@ class AVLTree:
         if not node:
             self._cached_size += 1
             return AVLNode(room)
-        elif room.room_number >= node.room.room_number:
+        elif room.room_number > node.room.room_number:
             node.right = self._insert_recursive(node.right, room)       
         elif room.room_number < node.room.room_number:
             node.left = self._insert_recursive(node.left, room)
