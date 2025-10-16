@@ -125,6 +125,7 @@ class AVLTree:
                     current.room.room_number += n
                 elif method == 2:
                     current.room.room_number *= n
+                current.room.guest_status = "old" # for visualize
                 stack.append(current)
                 current = current.left
 
