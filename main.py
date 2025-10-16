@@ -75,14 +75,48 @@ class HilbertHotelCLI:
 
         if infinity:
             amount_per_level = []
-            hierarchy_amount = self.get_int_input("\nEnter the amount for each hierarchy level: ", 1)
-            for n in range(hierarchy_amount):
-                amount = self.get_int_input(f"Amount for level {n + 1}: ", 1)
-                amount_per_level.append(amount)
+            hierarchy_amount = self.get_int_input("\nEnter the number of hierarchy levels: ", 1)
             
-            total = 1
-            for amount in amount_per_level:
-                total *= amount
+            for level_index in range(hierarchy_amount - 1, -1, -1):
+                level_num = level_index + 1
+                
+                if level_index == hierarchy_amount - 1:
+                    count = self.get_int_input(f"Units at level {level_num}: ", 1)
+                    amount_per_level.insert(0, count)
+                else:
+                    print(f"\nLevel {level_num}:")
+                    parent_count = amount_per_level[0] if level_index == hierarchy_amount - 2 else amount_per_level[hierarchy_amount - 2 - level_index]
+                    
+                    if isinstance(parent_count, list):
+                        parent_count = len(parent_count)
+                    
+                    amounts_list = []
+                    print(f"Enter amount for each of the {parent_count} parent units:")
+                    
+                    for i in range(parent_count):
+                        while True:
+                            try:
+                                amount = self.get_int_input(f"  Parent unit {i+1}: ", 1)
+                                amounts_list.append(amount)
+                                break
+                            except:
+                                print("Please enter a valid positive number.")
+                    
+                    amount_per_level.insert(0, amounts_list)
+                    print(f"Level {level_num}: {amounts_list}")
+            
+            bottom_level = amount_per_level[0] 
+            if isinstance(bottom_level, list):
+                total = sum(bottom_level)
+            else:
+                if len(amount_per_level) > 1:
+                    upper_level = amount_per_level[1]
+                    if isinstance(upper_level, list):
+                        total = bottom_level * len(upper_level)
+                    else:
+                        total = bottom_level * upper_level
+                else:
+                    total = bottom_level
                
         else:
             choice = self.get_int_input("\nChoose hierarchy level (1-5):\n1. Visitors only\n2. Visitors + Buses\n3. Visitors + Buses + Ships\n4. Visitors + Buses + Ships + Fleets\n5. Visitors + Buses + Ships + Fleets + Groups\nYour choice: ", 1, 5)
@@ -126,6 +160,24 @@ class HilbertHotelCLI:
                 total *= fleets
             if groups > 0:
                 total *= groups
+        
+        # Display summary for infinity calculation
+        if infinity:
+            print(f"\nSummary of hierarchy structure:")
+            for i, level_amount in enumerate(amount_per_level):
+                level_num = i + 1
+                if i == 0:
+                    # Bottom level - actual visitors/people
+                    if isinstance(level_amount, list):
+                        print(f"  Level {level_num} (visitors): {len(level_amount)} units with {level_amount} people respectively (total: {sum(level_amount)} visitors)")
+                    else:
+                        print(f"  Level {level_num} (visitors): {level_amount} people per unit")
+                else:
+                    # Upper levels - containers (buses, ships, etc.)
+                    if isinstance(level_amount, list):
+                        print(f"  Level {level_num} (containers): {len(level_amount)} units")
+                    else:
+                        print(f"  Level {level_num} (containers): {level_amount} units")
         
         print(f"\nThis will add {total} visitors. Continue? (y/n): ", end="")
         confirm = input().lower()

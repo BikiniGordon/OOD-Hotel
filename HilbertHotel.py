@@ -151,35 +151,84 @@ class HilbertHotel:
         new_rooms = []
         
         if hierarchy_levels == 1: # use odd even method
-            visitors_count = amount_per_level[0]
-            for v in range(visitors_count):
-                room_number = 2 * v + 1
-                new_rooms.append(Room(room_number, visitor_path=(0, 0, 0, 0), visitor_number=v + 1))
+            level_amounts = amount_per_level[0]
+            if isinstance(level_amounts, list):
+                visitor_offset = 0
+                for unit_idx, visitors_count in enumerate(level_amounts):
+                    for v in range(visitors_count):
+                        room_number = 2 * (visitor_offset + v) + 1
+                        new_rooms.append(Room(room_number, visitor_path=(unit_idx + 1,), visitor_number=v + 1))
+                    visitor_offset += visitors_count
+            else:
+                visitors_count = level_amounts
+                for v in range(visitors_count):
+                    room_number = 2 * v + 1
+                    new_rooms.append(Room(room_number, visitor_path=(0, 0, 0, 0), visitor_number=v + 1))
         else:
             def generate_rooms_recursive(level_index, current_path, prime_powers):
                 if level_index == 0:
-                    visitors_count = amount_per_level[0]
-                    for v in range(visitors_count):
-                        room_number = 1
-                        for i, power in enumerate(prime_powers):
-                            if power > 0:
-                                room_number *= (self.prime_numbers[i] ** power)
-                        
-                        room_number *= (self.prime_numbers[0] ** (v + 1))
-                        
-                        new_rooms.append(Room(room_number, visitor_path=current_path, visitor_number=v + 1))
+
+                    level_amounts = amount_per_level[0]
+                    if isinstance(level_amounts, list):
+                        if len(current_path) > 0:
+                            container_idx = current_path[-1] - 1
+                            if container_idx < len(level_amounts):
+                                visitors_count = level_amounts[container_idx]
+                                for v in range(visitors_count):
+                                    room_number = 1
+                                    for i, power in enumerate(prime_powers):
+                                        if power > 0:
+                                            room_number *= (self.prime_numbers[i] ** power)
+                                    
+                                    room_number *= (self.prime_numbers[0] ** (v + 1))
+                                    
+                                    new_rooms.append(Room(room_number, visitor_path=current_path, visitor_number=v + 1))
+                        else:
+                            visitor_offset = 0
+                            for unit_idx, visitors_count in enumerate(level_amounts):
+                                for v in range(visitors_count):
+                                    room_number = 1
+                                    for i, power in enumerate(prime_powers):
+                                        if power > 0:
+                                            room_number *= (self.prime_numbers[i] ** power)
+                                    
+                                    room_number *= (self.prime_numbers[0] ** (visitor_offset + v + 1))
+                                    
+                                    new_rooms.append(Room(room_number, visitor_path=(unit_idx + 1,), visitor_number=v + 1))
+                                visitor_offset += visitors_count
+                    else:
+                        visitors_count = level_amounts
+                        for v in range(visitors_count):
+                            room_number = 1
+                            for i, power in enumerate(prime_powers):
+                                if power > 0:
+                                    room_number *= (self.prime_numbers[i] ** power)
+                            
+                            room_number *= (self.prime_numbers[0] ** (v + 1))
+                            
+                            new_rooms.append(Room(room_number, visitor_path=current_path, visitor_number=v + 1))
                     return
                 
-                current_level_count = amount_per_level[level_index]
+                level_amounts = amount_per_level[level_index]
                 prime_index = level_index
                 
-                for unit in range(current_level_count):
-                    next_path = current_path + (unit + 1,)
-                    
-                    new_prime_powers = prime_powers.copy()
-                    new_prime_powers[prime_index] = unit + 1
-                    
-                    generate_rooms_recursive(level_index - 1, next_path, new_prime_powers)
+                if isinstance(level_amounts, list):
+                    for unit_idx in range(len(level_amounts)):
+                        next_path = current_path + (unit_idx + 1,)
+                        
+                        new_prime_powers = prime_powers.copy()
+                        new_prime_powers[prime_index] = unit_idx + 1
+                        
+                        generate_rooms_recursive(level_index - 1, next_path, new_prime_powers)
+                else:
+                    current_level_count = level_amounts
+                    for unit in range(current_level_count):
+                        next_path = current_path + (unit + 1,)
+                        
+                        new_prime_powers = prime_powers.copy()
+                        new_prime_powers[prime_index] = unit + 1
+                        
+                        generate_rooms_recursive(level_index - 1, next_path, new_prime_powers)
             
             initial_prime_powers = [0] * hierarchy_levels
             generate_rooms_recursive(hierarchy_levels - 1, (), initial_prime_powers)
