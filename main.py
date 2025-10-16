@@ -75,7 +75,7 @@ class HilbertHotelCLI:
 
         if infinity:
             amount_per_level = []
-            hierarchy_amount = self.get_int_input("\nEnter the number of hierarchy levels: ", 1)
+            hierarchy_amount = self.get_int_input("\nEnter the number of hierarchy levels: ", 1, 2)
             
             for level_index in range(hierarchy_amount - 1, -1, -1):
                 level_num = level_index + 1
